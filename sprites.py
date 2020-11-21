@@ -3,6 +3,7 @@ import pygame as pg
 from settings import *
 from enums import *
 import time  # needed for adding a delay to the attacking of the enemy
+import random
 
 
 #The player
@@ -27,7 +28,7 @@ class Player(pg.sprite.Sprite):
             PLAYER_START_X, PLAYER_START_Y
         )  # set the coordinates for the players starting position
         self.velocity = pg.math.Vector2()
-        self.velocity.xy = 0, 0  # changing this value will give the player an initial velocity
+        #self.velocity.xy = 0, 0  # changing this value will give the player an initial velocity
 
         self.acceleration = pg.math.Vector2()
         self.acceleration.xy = 0, 0
@@ -36,28 +37,29 @@ class Player(pg.sprite.Sprite):
         self.movex = 0 # move along X
         self.movey = 0 # move along Y
         self.frame = 0 # count frames
-        """
+        
         # jump variables
         self.is_jumping = True
         self.is_falling = False
-        """
+        
         # function to make sprite move
     def control(self,x,y):
         '''self.movex += x
         self.movey += y'''
         self.acceleration.x = x
-        """
+      
         # gravity function for jumping 
-    def gravity(self):
+    '''def gravity(self):
         if self.is_jumping:
-            self.movey += 3.2
+            self.movey += 3.2'''
 
         # jump function
     def jump(self):
         if self.is_jumping is False:
             self.is_falling = False
             self.is_jumping = True
-        """
+            self.movey = -10
+        
     def damage(self, damage):
         self.health -= damage  # reduce the players health by damage
         if self.health <= 0:  # if they have 0 or less health then call the die function
@@ -96,39 +98,47 @@ class Player(pg.sprite.Sprite):
           else:
             self.acceleration.x -= 0.5
 
-        
-        self.acceleration.x += self.velocity.x * PLAYER_FRICTION
-        self.velocity += self.acceleration
-        self.position += self.velocity + 0.5 * self.acceleration
-        #self.acceleration.xy = 0, 0#PLAYER_GRAVITY
+        #self.acceleration.x += self.velocity.x * PLAYER_FRICTION
+        self.acceleration.x += self.movex * PLAYER_FRICTION
+        self.movex += self.acceleration.x
+        self.movey += self.acceleration.y
+        #self.position += self.velocity + 0.5 * self.acceleration
+        self.position.x += self.movex + 0.5 * self.acceleration.x
+        self.position.y += self.movey + 0.5 * self.acceleration.y
+        self.acceleration.xy = (0, PLAYER_GRAVITY)
         #Increase or decrease X acceleration by keypress
-        self.position = self.position.xy + self.velocity.xy  # increase the current position by the velocity of the player
+        #self.position = self.position.xy + self.velocity.xy  # increase the current position by the velocity of the player
+        self.position.x = self.position.x + self.movex
+        self.position.y = self.position.y + self.movey
         self.rect.center = self.position  # set the players position on the screen
 
         # update sprite position on the screen
         #self.rect.x = self.rect.x + self.movex  
         #self.rect.y = self.rect.y + self.movey 
         
-        ''''
+        
         # plat_hit_list may need to be changed to suit our code
         # collision detection for sprite so it stops falling
-        plat_hit_list = pygame.sprite.spritecollide(self, plat_list, False)
+        plat_hit_list = pg.sprite.spritecollide(self, self.game.platformPool.platformsInUse, False)
         for p in plat_hit_list:
-            self.is_jumping = False  # stop jumping
-            self.movey = 0
+          p.stood_on()
+          self.is_jumping = False  # stop jumping
+          self.movey = 0
+          #self.velocity.y = 0
 
-            # approach from below
-            if self.rect.bottom <= p.rect.bottom:
-               self.rect.bottom = p.rect.top
-            else:
-               self.movey += 3.2
+          # approach from below
+          if self.rect.bottom <= p.rect.bottom:
+            #print(f'{self.rect.bottom}, {p.rect.bottom}')
+            self.rect.bottom = p.rect.top
+          else:
+              self.movey += 3.2
         # may need to turn gravity on again after its touched a platform
         #self.is_jumping = True  # turn gravity on 
         # setting an amount of pixels to jump
         if self.is_jumping and self.is_falling is False:
             self.is_falling = True
-            self.movey -= 33  # how high to jump
-          '''
+            #self.movey -= 33  # how high to jump
+         
           
 # enemies
 class Enemy(pg.sprite.Sprite):
@@ -147,8 +157,15 @@ class Enemy(pg.sprite.Sprite):
 
         self.player = game.player
 
+        # use this like a switch case statement from Java / C
+        self.possibleMutations = {
+          "Flight" : self.fly,
+          "Jumping" : self.jump,
+          "Movement" : self.move
+        }
+
     # when called from the object pool
-    def init(self):
+    def init(self, x, y):
         self.group = self.game.AllSpriteGroup  # establish the group variable
         pg.sprite.Sprite.__init__(self, self.group)  # initialize the sprite
         self.game.AllSpriteGroup.add(
@@ -157,7 +174,7 @@ class Enemy(pg.sprite.Sprite):
         self.position = pg.math.Vector2(
         )  # set the position equal to a base vector, cannot be the same as any other enemy / player else it will update their position too
         self.position.xy = (
-            ENEMY_START_X, ENEMY_START_Y
+            x, y
         )  # edit the base vector so that it starts at the initial position
 
         self.damage = ENEMY_DAMAGE
@@ -170,16 +187,9 @@ class Enemy(pg.sprite.Sprite):
         self.bullet_speed = BULLET_SPEED
         self.bullet_damage = ENEMY_DAMAGE
 
-    # reset all variables before being put back in the object pool
-    def reset(self):
-        self.health = None
-        self.position = None
-        self.damage = None
-        self.damage_type = None
-        self.attack_period = None
-        self.time_to_reach = None
-        self.bullet_speed = None
-        self.bullet_damage = None
+        self.inUse = True
+        self.mutations = ["Movement"]
+        self.current_direction = random.choice(list(Direction))
 
     def take_damage(self):
         self.health -= 1  # deal 1 damage to this enemy
@@ -191,8 +201,20 @@ class Enemy(pg.sprite.Sprite):
         pass
 
     def move(self):
-        # used for moving the enemy
-        pass
+      # used for moving the enemy
+      print("Move")
+      if self.current_direction == Direction.RIGHT:
+        self.position.x += 1
+      else:
+        self.position.x -= 1
+      
+    def jump(self):
+      print("Jump")
+      pass
+    
+    def fly(self):
+      print("Fly")
+      pass
 
     def set_damage_type(self, damage_type):
         self.damage_type = damage_type  # set the damage type of this enemy
@@ -216,8 +238,20 @@ class Enemy(pg.sprite.Sprite):
         pass
 
     def update(self):
+        # make the enemy scroll with the screen
+        self.position.y += SCREEN_SCROLL_RATE
+
         self.position.xy += (0, 0)
         self.rect.center = self.position  # set the position of the sprite on the screen
+
+        plat_hit_list = pg.sprite.spritecollide(self, self.game.platformPool.platformsInUse, False)
+        for p in plat_hit_list:
+          self.position.y = p.rect.midtop[1] - 7 #p.rect.midtop[0], 
+         
+        # complete mutation movements
+        for mutation in self.mutations:
+          # call the enemy's specific mutations
+          self.possibleMutations[mutation]()
 
         # to stop the enemy from shooting, simply change its ENEMY_DEFAULT_DAMAGE_TYPE in settings.py to MELEE instead of RANGED
         if time.time(
@@ -259,16 +293,19 @@ class Bullet(pg.sprite.Sprite):
         self.player = game.player  # initialize the player variable, used for collision detection
 
     def check_collision(self):
-        collide_check = pg.sprite.collide_circle(
-            self, self.
-            player)  # check for collision between the bullet and the player
+        collide_check = pg.sprite.collide_circle(self, self.player)  # check for collision between the bullet and the player
 
         if collide_check:  # if they collide
-            self.player.damage(self.damage)  # damage the player
-            self.game.bullet_manager.remove_bullet(
-                self)  # remove the bullet from the bullet manager
+          self.player.damage(self.damage)  # damage the player
+          self.game.bullet_manager.remove_bullet(self)  # remove the bullet from the bullet manager
+
+        if self.position.y < HEIGHT:
+          self.game.bullet_manager.remove_bullet(self)  # remove the bullet from the bullet manager
 
     def move(self):
+        # make the bullet scroll with the screen   
+        self.position.y += SCREEN_SCROLL_RATE
+
         self.position = self.position.xy + (0, -self.speed
                                             )  # make the bullet go upwards
 
@@ -289,6 +326,7 @@ class Platform(pg.sprite.Sprite):
       self.rect = self.image.get_rect()
       self.platformType = PLATFORM_DEFAULT_TYPE # the type of platform that this is, safe or default
 
+      self.activated = False # set this as not activated
       self.stoodOn = False # if this platform has been stood on or not
       self.safeTime = 0 # the time allowed for safety on a platform, x seconds before the platform will start to decay
       self.time = 0 # the current time the platform has been stood on for
@@ -304,6 +342,7 @@ class Platform(pg.sprite.Sprite):
       self.rect.y = y
       self.platformType = p_type # the type of platform that this is, safe or default
 
+      self.activated = False # set this as not activated
       self.stoodOn = False # if this platform has been stood on or not
       self.safeTime = 0 # the time allowed for safety on a platform, x seconds before the platform will start to decay
       self.time = 0 # the current time the platform has been stood on for
@@ -313,6 +352,10 @@ class Platform(pg.sprite.Sprite):
 
     # if the player stands on this platform
     def stood_on(self):
+      if self.activated:
+        return
+
+      self.activated = True
       self.time = time.time() + PLATFORM_DEFAULT_TIME_LIMIT # make a timer for the default time 
 
       self.stoodOn = True # a boolean to determine if this platform has been stood on
@@ -321,13 +364,26 @@ class Platform(pg.sprite.Sprite):
         self.safeTime = time.time() + PLATFORM_SAFE_TIME_LIMIT # set the safe time
         self.time += PLATFORM_SAFE_TIME_LIMIT # also increase the default time to account for this safe time
 
+    def enemystood_on(self):
+      if self.activated:
+        return
+      #self.activated = True
+
+
+      #self.stoodOn = True # a boolean to determine if this platform has been stood on
+      '''if self.platformType == PlatformType.SAFE: # if this is a safe platform, also include a small delay before decaying begins
+        self.safeTime = time.time() + PLATFORM_SAFE_TIME_LIMIT # set the safe time
+        self.time += PLATFORM_SAFE_TIME_LIMIT # also increase the default time to account for this safe time'''
+
+
+
     # for scrolling screen
     def update(self):
-      self.rect.y -= 0.1 # for scrolling screen
+      self.rect.y += SCREEN_SCROLL_RATE
 
       if self.stoodOn: # if this platform has been stood on
         if time.time() >= self.safeTime: # if the safe time has been reached
-          self.rect.y -= 0.01 # move the platform down if it is decaying, adds visual feedback
+          self.rect.y += 1 # move the platform down if it is decaying, adds visual feedback
           if time.time() >= self.time: # if the total time has been reached
             # destroy this platform
             self.inUse = False # should remove it from the screen and add it back to the platform pool

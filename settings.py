@@ -1,10 +1,10 @@
 import os
-from enums import *
+from enums import DamageType, PlatformType
 
 TITLE = "SE DP Platformer Group Project"
-WIDTH = 0
-HEIGHT = 0
-FPS = 60
+WIDTH = 800
+HEIGHT = 600
+FPS = 30
 FONT_NAME = "arial"
 
 # Put Player properties (acceleration, friction, gravity, jump height. HERE)
@@ -13,14 +13,14 @@ PLAYER_SPRITE = os.path.join('images', 'player.png')
 
 PLAYER_ACCELERATION = 0.5
 PLAYER_FRICTION = -0.12
-PLAYER_GRAVITY = 0.01
+PLAYER_GRAVITY = 0.3
 JUMP_HEIGHT = 0
 PLAYER_HEALTH = 3
 PLAYER_START_X = 50
 PLAYER_START_Y = 0
 
 # amount of pixels in one step of the player
-PLAYER_MOVE_SPEED = 3
+PLAYER_MOVE_SPEED = 2
 
 # Put Enemy properties here (base speed, base health, base damage etc...)
 ENEMY_COUNT = 10
@@ -38,16 +38,19 @@ ENEMY_DEFAULT_ATTACK_PERIOD = 2 # how often the enemy attacks, every 2 seconds c
 
 BULLET_SPRITE = os.path.join('images', 'bullet.png') # the sprite of the bullet
 
-BULLET_SPEED = 1 # the speed of the bullet
+BULLET_SPEED = 2 # the speed of the bullet
 
 # platform properties here
 
 PLATFORM_SPRITE = os.path.join('images', 'platform.png') # load the sprite of the platform
 
 PLATFORM_COUNT = 10
-PLATFORM_DEFAULT_TYPE = PlatformType.DEFAULT
+PLATFORM_DEFAULT_TYPE = PlatformType.SAFE
 PLATFORM_DEFAULT_TIME_LIMIT = 3 # the time before the platform fully decays, 3 seconds
 PLATFORM_SAFE_TIME_LIMIT = 2 # the safe period of the safe platform, the platform wont start decaying for another 2 seconds
+
+# scrolling screen properties
+SCREEN_SCROLL_RATE = 1 # how fast the screen scrolls
 
 # item properties here
 

@@ -10,3 +10,7 @@ class DamageType(Enum):
 class PlatformType(Enum):
   DEFAULT = 1
   SAFE = 2
+
+class Direction(Enum):
+  LEFT = 1
+  RIGHT = 2

@@ -1,7 +1,88 @@
 from sprites import Enemy, Platform, Item
 from enums import PlatformType
 
-class Pool:
+
+class EnemyPool:
+  def __init__(self, game, poolSize):
+    self.game = game
+    self.enemiesInUse = self.game.enemiesInUse
+    self.enemiesNotInUse = self.game.enemiesNotInUse
+    self.POOL_SIZE = poolSize  
+
+  def allocate_enemy(self, x, y, amountOfMutations):
+    if len(self.enemiesNotInUse) > 0:
+      print()
+      newEnemy = self.game.enemiesNotInUse.pop()
+      newEnemy.init(x, y)
+      self.game.enemiesInUse.append(newEnemy)
+    
+    elif len(self.enemiesInUse) < self.POOL_SIZE:
+      newEnemy = Enemy(self.game)
+      newEnemy.init(x, y)
+      self.game.enemiesInUse.append(newEnemy)
+
+    else: 
+      return None
+
+  def update_all(self):
+    for enemy in self.enemiesInUse:
+        # get rid of removed enemies
+        if not enemy.inUse:
+          enemy.kill()
+          self.enemiesNotInUse.append(enemy)
+          self.enemiesInUse.remove(enemy)
+        
+        # update all enemies
+        enemy.update()
+
+
+
+
+class PlatformPool:
+  def __init__(self, game, poolSize):
+    self.game = game
+
+    self.POOL_SIZE = poolSize
+    self.platformsInUse = []
+    self.platformsNotInUse = []
+
+  def allocate_platform(self, x, y, p_type):
+    # get new platform from unused list if there is one
+    if len(self.platformsNotInUse) > 0: 
+      newPlatform = self.platformsNotInUse.pop()
+      newPlatform.init(x, y, p_type)
+      self.platformsInUse.append(newPlatform)
+      
+
+    # create new platform and add it to the used list if there is no unused platforms.
+    elif len(self.platformsInUse) < self.POOL_SIZE:
+      newPlatform = Platform(self.game)
+      newPlatform.init(x, y, p_type)
+      self.platformsInUse.append(newPlatform)
+
+    # pool is full so no platforms to allocate
+    else:
+      return None
+
+  def update_all(self):
+
+    for platform in self.platformsInUse:
+      # get rid of removed platforms
+      if not platform.inUse:
+        platform.kill()
+        self.platformsNotInUse.append(platform)
+        self.platformsInUse.remove(platform)
+
+      # update all platforms
+      else:
+        platform.update()
+
+
+
+class ItemPool:
+  pass
+
+'''class Pool:
   def __init__(self, game, enemyCount, platformCount, itemCount):
     self.game = game
     # seperate pools of objects
@@ -57,60 +138,4 @@ class Pool:
     pass
   
   def free_item(self, item):
-    pass
-
-class EnemyPool:
-  def __init__(self, poolSize):
-    self.POOL_SIZE = poolSize
-    self.enemiesInUse = []
-    self.enemiesNotInUse = []
-
-#def allocate_enemy(self, game):
-
-
-
-class PlatformPool:
-  def __init__(self, game, poolSize):
-    self.game = game
-
-    self.POOL_SIZE = poolSize
-    self.platformsInUse = []
-    self.platformsNotInUse = []
-    for x in range(self.POOL_SIZE):
-      newPlatform = Platform(self.game)
-      self.platformsNotInUse.append(newPlatform)
-
-  def allocate_platform(self, x, y, p_type):
-    # get new platform from unused list if there is one
-    if len(self.platformsNotInUse) > 0: 
-      newPlatform = self.platformsNotInUse.pop()
-      newPlatform.init(x, y, p_type)
-
-    # create new platform and add it to the used list if there is no unused platforms.
-    elif len(self.platformsInUse) < self.POOL_SIZE:
-      newPlatform = Platform(self.game)
-      newPlatform.init(x, y, p_type)
-      self.platformsInUse.append(newPlatform)
-
-    # pool is full so no platforms to allocate
-    else:
-      return None
-
-  def update_all(self):
-
-    for platform in self.platformsInUse:
-      # get rid of removed platforms
-      if not platform.inUse:
-        platform.kill()
-        self.platformsNotInUse.append(platform)
-        self.platformsInUse.remove(platform)
-      
-      # update all platforms
-      platform.update()
-
-
-
-class ItemPool:
-  pass
-
-
+    pass'''
